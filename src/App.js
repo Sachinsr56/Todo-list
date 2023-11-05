@@ -1,64 +1,99 @@
+import React, { useState, useContext, useEffect } from 'react';
 import './App.css';
-import Header from './MyComponents/Header';
-import { Todos } from './MyComponents/Todos';
-import { Footer } from './MyComponents/Footer';
-import React, {useState,useEffect} from 'react';
-import { AddTodo } from './MyComponents/AddTodo';
+
+const TaskContext = React.createContext();
 
 function App() {
-  let initTodo
-  if(localStorage.setItem("todos")===null){
-    initTodo=[];
-  }
-  else{
-    initTodo= JSON.parse(localStorage.getItem("todos"));
-  }
+  const [tasks, setTasks] = useState([]);
 
-  const onDelete=(todo)=>{
-    console.log("I am on delete",todo);
-    // Deleting this way in react does not Worker
-    // let index=todos.indexOf(todo);
-    // todos.splice(index,1);
-
-    setTodos(todos.filter((e)=>{
-      return e!==todo;
-    }));
-    localStorage.setItem("todos", JSON.stringify(todos));
-  }
-  const addTodo = (title,desc)=>{
-    let sno;
-    if(todos.length===0){
-      sno=0;
-    }
-    else{
-      sno=todos[todos.length-1].sno+1;
-    }
-    const myTodo = {
-      sno: sno,
-      title:title,
-      desc:desc,
-    }
-    setTodos([...todos,myTodo]);
-    
-    }
-
-
-  const [todos, setTodos] = useState([initTodo]);
-
-  
   useEffect(() => {
-    localStorage.setItem("todos", JSON.stringify(todos));
-  }, [todos])
+    const storedTasks = JSON.parse(localStorage.getItem('tasks')) || [];
+    setTasks(storedTasks);
+  }, []);
 
+  useEffect(() => {
+    localStorage.setItem('tasks', JSON.stringify(tasks));
+  }, [tasks]);
+
+  const addTask = (task) => {
+    setTasks([...tasks, task]);
+  };
+
+  const completeTask = (index) => {
+    const updatedTasks = [...tasks];
+    updatedTasks[index].completed = true;
+    setTasks(updatedTasks);
+  };
+
+  const removeTask = (index) => {
+    const updatedTasks = [...tasks];
+    updatedTasks.splice(index, 1);
+    setTasks(updatedTasks);
+  };
 
   return (
-    <>
-    <Header title="Todos List" searchBar={true} />
-    <AddTodo addTodo={addTodo} />
-    <Todos todos={todos} onDelete={onDelete} />
-    <Footer />
-    </>
+    <div className="container">
+      <TaskContext.Provider value={{ tasks, addTask, completeTask, removeTask }}>
+        <h1 className="text-center my-4">To-Do List</h1>
+        <TaskForm />
+        <TaskList />
+      </TaskContext.Provider>
+    </div>
   );
 }
+
+function TaskForm() {
+  const { addTask } = useContext(TaskContext);
+  const [task, setTask] = useState('');
+
+  const handleAddTask = () => {
+    if (task.trim() !== '') {
+      addTask({ text: task, completed: false });
+      setTask('');
+    }
+  };
+
+  return (
+    <div className="input-group mb-3">
+      <input
+        type="text"
+        className="form-control"
+        placeholder="Add a new task"
+        value={task}
+        onChange={(e) => setTask(e.target.value)}
+      />
+      <button className="btn btn-primary" onClick={handleAddTask}>
+        Add
+      </button>
+    </div>
+  );
+}
+
+function TaskList() {
+  const { tasks, completeTask, removeTask } = useContext(TaskContext);
+
+  const handleComplete = (index) => {
+    completeTask(index);
+  };
+
+  return (
+    <ul className="list-group">
+      {tasks.map((task, index) => (
+        <li key={index} className={`list-group-item ${task.completed ? 'completed' : ''}`}>
+          {task.text}
+          <div className="float-right">
+            <button className="btn btn-success mr-2" onClick={() => handleComplete(index)}>
+              Complete
+            </button>
+            <button className="btn btn-danger" onClick={() => removeTask(index)}>
+              Remove
+            </button>
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 
 export default App;
